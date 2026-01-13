@@ -105,6 +105,7 @@ from mcpgateway.utils.services_auth import decode_auth, encode_auth
 from mcpgateway.utils.sqlalchemy_modifier import json_contains_expr
 from mcpgateway.utils.validate_signature import validate_signature
 from mcpgateway.validation.tags import validate_tags_field
+from mcpgateway.services.mcp_session_pool import register_gateway_capabilities_for_notifications
 
 # Cache import (lazy to avoid circular dependencies)
 _REGISTRY_CACHE = None
@@ -1227,6 +1228,9 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
             gateway.capabilities = capabilities
             gateway.last_seen = datetime.now(timezone.utc)
 
+            # Register capabilities for notification-driven actions
+            register_gateway_capabilities_for_notifications(gateway.id, capabilities)
+
             # Add new items to DB in chunks to prevent lock escalation
             items_added = 0
             chunk_size = 50
@@ -1853,6 +1857,10 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                         db.expire(gateway)
 
                     gateway.capabilities = capabilities
+
+                    # Register capabilities for notification-driven actions
+                    register_gateway_capabilities_for_notifications(gateway.id, capabilities)
+
                     gateway.tools = [tool for tool in gateway.tools if tool.original_name in new_tool_names]  # keep only still-valid rows
                     gateway.resources = [resource for resource in gateway.resources if resource.uri in new_resource_uris]  # keep only still-valid rows
                     gateway.prompts = [prompt for prompt in gateway.prompts if prompt.original_name in new_prompt_names]  # keep only still-valid rows
@@ -2258,6 +2266,10 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                             db.expire(gateway)
 
                         gateway.capabilities = capabilities
+                        
+                        # Register capabilities for notification-driven actions
+                        register_gateway_capabilities_for_notifications(gateway.id, capabilities)
+
                         gateway.tools = [tool for tool in gateway.tools if tool.original_name in new_tool_names]  # keep only still-valid rows
                         gateway.resources = [resource for resource in gateway.resources if resource.uri in new_resource_uris]  # keep only still-valid rows
                         gateway.prompts = [prompt for prompt in gateway.prompts if prompt.original_name in new_prompt_names]  # keep only still-valid rows
@@ -3268,6 +3280,7 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                                 transport_type=TransportType.STREAMABLE_HTTP,
                                 httpx_client_factory=get_httpx_client_factory,
                                 user_identity="_system_health_check",
+                                gateway_id=gateway_id,
                             ) as pooled:
                                 # Optional explicit RPC verification (off by default for performance).
                                 # Pool's internal staleness check handles health via _validate_session.
