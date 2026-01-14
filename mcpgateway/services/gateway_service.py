@@ -2407,10 +2407,10 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
             )
             raise GatewayError(f"Failed to toggle gateway status: {str(e)}")
 
-    # # Backward compatibility alias
-    # async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
-    #     """Deprecated: Use set_gateway_state instead."""
-    #     return await self.set_gateway_state(db, gateway_id, activate, reachable, only_update_reachable, user_email)
+    # Backward compatibility alias
+    async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
+        """Deprecated: Use set_gateway_state instead."""
+        return await self.set_gateway_state(db, gateway_id, activate, reachable, only_update_reachable, user_email)
 
     async def _notify_gateway_updated(self, gateway: DbGateway) -> None:
         """

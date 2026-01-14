@@ -1093,7 +1093,7 @@ class TestGatewayService:
         test_db.commit = Mock()
         test_db.refresh = Mock()
 
-        # Return one tool so toggle_tool_status gets called
+        # Return one tool so set_tool_state gets called
         query_proxy = MagicMock()
         filter_proxy = MagicMock()
         filter_proxy.all.return_value = [MagicMock(id=101)]
@@ -1106,7 +1106,7 @@ class TestGatewayService:
         gateway_service._initialize_gateway = AsyncMock(return_value=({"prompts": {}}, [], [], []))
 
         tool_service_stub = MagicMock()
-        tool_service_stub.toggle_tool_status = AsyncMock()
+        tool_service_stub.set_tool_state = AsyncMock()
         gateway_service.tool_service = tool_service_stub
 
         # Patch model_validate to return a mock with .masked()
@@ -1114,11 +1114,11 @@ class TestGatewayService:
         mock_gateway_read.masked.return_value = mock_gateway_read
 
         with patch("mcpgateway.services.gateway_service.GatewayRead.model_validate", return_value=mock_gateway_read):
-            result = await gateway_service.toggle_gateway_status(test_db, 1, activate=False)
+            result = await gateway_service.set_gateway_state(test_db, 1, activate=False)
 
         assert mock_gateway.enabled is False
         gateway_service._notify_gateway_deactivated.assert_called_once()
-        assert tool_service_stub.toggle_tool_status.called
+        assert tool_service_stub.set_tool_state.called
         assert result == mock_gateway_read
 
     @pytest.mark.asyncio
@@ -1142,7 +1142,7 @@ class TestGatewayService:
         gateway_service._initialize_gateway = AsyncMock(return_value=({"prompts": {}}, [], [], []))
 
         tool_service_stub = MagicMock()
-        tool_service_stub.toggle_tool_status = AsyncMock()
+        tool_service_stub.set_tool_state = AsyncMock()
         gateway_service.tool_service = tool_service_stub
 
         # Patch model_validate to return a mock with .masked()
@@ -1150,11 +1150,11 @@ class TestGatewayService:
         mock_gateway_read.masked.return_value = mock_gateway_read
 
         with patch("mcpgateway.services.gateway_service.GatewayRead.model_validate", return_value=mock_gateway_read):
-            result = await gateway_service.toggle_gateway_status(test_db, 1, activate=True)
+            result = await gateway_service.set_gateway_state(test_db, 1, activate=True)
 
         assert mock_gateway.enabled is True
         gateway_service._notify_gateway_activated.assert_called_once()
-        assert tool_service_stub.toggle_tool_status.called
+        assert tool_service_stub.set_tool_state.called
         assert result == mock_gateway_read
 
     @pytest.mark.asyncio
@@ -1163,7 +1163,7 @@ class TestGatewayService:
         test_db.execute = Mock(return_value=_make_execute_result(scalar=None))
 
         with pytest.raises(GatewayError) as exc_info:
-            await gateway_service.toggle_gateway_status(test_db, 999, activate=True)
+            await gateway_service.set_gateway_state(test_db, 999, activate=True)
 
         assert "Gateway not found: 999" in str(exc_info.value)
 
@@ -1188,12 +1188,12 @@ class TestGatewayService:
 
         # Make tool toggle fail
         tool_service_stub = MagicMock()
-        tool_service_stub.toggle_tool_status = AsyncMock(side_effect=Exception("Tool toggle failed"))
+        tool_service_stub.set_tool_state = AsyncMock(side_effect=Exception("Tool toggle failed"))
         gateway_service.tool_service = tool_service_stub
 
-        # The toggle_gateway_status method will catch the exception and raise GatewayError
+        # The set_gateway_state method will catch the exception and raise GatewayError
         with pytest.raises(GatewayError) as exc_info:
-            await gateway_service.toggle_gateway_status(test_db, 1, activate=False)
+            await gateway_service.set_gateway_state(test_db, 1, activate=False)
 
         assert "Failed to toggle gateway status" in str(exc_info.value)
         assert "Tool toggle failed" in str(exc_info.value)
@@ -2117,7 +2117,7 @@ class TestGatewayHealth:
         """Test that health check triggers auto-refresh when due."""
         # Setup: Auto-refresh ON, Refresh needed
         gateway_service._refresh_gateway_tools_resources_prompts = AsyncMock()
-        gateway_service.toggle_gateway_status = AsyncMock()
+        gateway_service.set_gateway_state = AsyncMock()
         gateway_service._get_refresh_lock = MagicMock()
 
         # Lock needs to be MagicMock for sync .locked(), but behave as AsyncMock for context manager

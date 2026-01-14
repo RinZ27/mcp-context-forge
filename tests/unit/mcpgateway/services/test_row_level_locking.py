@@ -13,7 +13,7 @@ methods to prevent race conditions under high concurrency.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch, call, AsyncMock
 from sqlalchemy.orm import Session
 
 from mcpgateway.db import get_for_update, Tool, Server, Resource, Prompt, Gateway, A2AAgent
@@ -363,8 +363,11 @@ class TestGatewayServiceLocking:
         mock_result.scalar_one_or_none.return_value = mock_gateway
         db.execute.return_value = mock_result
 
-        with patch.object(service, "_initialize_gateway", return_value=(None, [], [], [])):
-            with patch("mcpgateway.services.gateway_service._get_registry_cache"):
+        with patch.object(service, "_initialize_gateway", new=AsyncMock(return_value=(None, [], [], []))):
+            # Provide a cache mock with async `invalidate_gateways` so awaits succeed
+            mock_cache = MagicMock()
+            mock_cache.invalidate_gateways = AsyncMock()
+            with patch("mcpgateway.services.gateway_service._get_registry_cache", return_value=mock_cache):
                 try:
                     await service.toggle_gateway_status(db, "gateway-id", activate=False)
                 except Exception:
