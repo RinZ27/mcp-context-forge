@@ -2322,10 +2322,10 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                 # Toggle tools with skip_cache_invalidation=True to avoid N invalidations
                 if only_update_reachable:
                     for tool in tools:
-                        await self.tool_service.toggle_tool_status(db, tool.id, tool.enabled, reachable, skip_cache_invalidation=True)
+                        await self.tool_service.set_tool_state(db, tool.id, tool.enabled, reachable, skip_cache_invalidation=True)
                 else:
                     for tool in tools:
-                        await self.tool_service.toggle_tool_status(db, tool.id, activate, reachable, skip_cache_invalidation=True)
+                        await self.tool_service.set_tool_state(db, tool.id, activate, reachable, skip_cache_invalidation=True)
 
                 # Invalidate tools cache once after all tool status changes
                 if tools:
@@ -2407,10 +2407,10 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
             )
             raise GatewayError(f"Failed to toggle gateway status: {str(e)}")
 
-    # Backward compatibility alias
-    async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
-        """Deprecated: Use set_gateway_state instead."""
-        return await self.set_gateway_state(db, gateway_id, activate, reachable, only_update_reachable, user_email)
+    # # Backward compatibility alias
+    # async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
+    #     """Deprecated: Use set_gateway_state instead."""
+    #     return await self.set_gateway_state(db, gateway_id, activate, reachable, only_update_reachable, user_email)
 
     async def _notify_gateway_updated(self, gateway: DbGateway) -> None:
         """

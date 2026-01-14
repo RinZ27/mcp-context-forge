@@ -1496,10 +1496,10 @@ class ServerService:
             )
             raise ServerError(f"Failed to toggle server status: {str(e)}")
 
-    # Backward compatibility alias
-    async def toggle_server_status(self, db: Session, server_id: str, activate: bool, user_email: Optional[str] = None) -> ServerRead:
-        """Deprecated: Use set_server_state instead."""
-        return await self.set_server_state(db, server_id, activate, user_email)
+    # # Backward compatibility alias
+    # async def toggle_server_status(self, db: Session, server_id: str, activate: bool, user_email: Optional[str] = None) -> ServerRead:
+    #     """Deprecated: Use set_server_state instead."""
+    #     return await self.set_server_state(db, server_id, activate, user_email)
 
     async def delete_server(self, db: Session, server_id: str, user_email: Optional[str] = None, purge_metrics: bool = False) -> None:
         """Permanently delete a server.

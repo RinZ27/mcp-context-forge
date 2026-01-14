@@ -517,13 +517,13 @@ class TestServerEndpoints:
         assert response.status_code == 200
         mock_update.assert_called_once()
 
-    @patch("mcpgateway.main.server_service.toggle_server_status")
+    @patch("mcpgateway.main.server_service.set_server_state")
     def test_toggle_server_status(self, mock_toggle, test_client, auth_headers):
         """Test toggling server active/inactive status."""
         updated_server = MOCK_SERVER_READ.copy()
         updated_server["enabled"] = False
         mock_toggle.return_value = ServerRead(**updated_server)
-        response = test_client.post("/servers/1/toggle?activate=false", headers=auth_headers)
+        response = test_client.post("/servers/1/state?activate=false", headers=auth_headers)
         assert response.status_code == 200
         mock_toggle.assert_called_once()
 
@@ -849,13 +849,13 @@ class TestPromptEndpoints:
         assert response.json()["status"] == "success"
         mock_delete.assert_called_once()
 
-    @patch("mcpgateway.main.prompt_service.toggle_prompt_status")
+    @patch("mcpgateway.main.prompt_service.set_prompt_state")
     def test_toggle_prompt_status(self, mock_toggle, test_client, auth_headers):
         """Test toggling prompt active/inactive status."""
         mock_prompt = MagicMock()
         mock_prompt.model_dump.return_value = {"id": 1, "enabled": False}
         mock_toggle.return_value = mock_prompt
-        response = test_client.post("/prompts/1/toggle?activate=false", headers=auth_headers)
+        response = test_client.post("/prompts/1/state?activate=false", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["status"] == "success"
         mock_toggle.assert_called_once()
@@ -929,13 +929,13 @@ class TestPromptEndpoints:
         assert response.status_code == 200
         assert response.json()["status"] == "success"
 
-    @patch("mcpgateway.main.prompt_service.toggle_prompt_status")
+    @patch("mcpgateway.main.prompt_service.set_prompt_state")
     def test_toggle_prompt_status(self, mock_toggle, test_client, auth_headers):
         """Test toggling prompt active/inactive status."""
         mock_prompt = MagicMock()
         mock_prompt.model_dump.return_value = {"id": 1, "enabled": False}
         mock_toggle.return_value = mock_prompt
-        response = test_client.post("/prompts/1/toggle?activate=false", headers=auth_headers)
+        response = test_client.post("/prompts/1/state?activate=false", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["status"] == "success"
 

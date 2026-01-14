@@ -1947,10 +1947,10 @@ class PromptService:
             raise PromptError(f"Failed to toggle prompt status: {str(e)}")
 
     # Get prompt details for admin ui
-    # Backward compatibility alias
-    async def toggle_prompt_status(self, db: Session, prompt_id: int, activate: bool, user_email: Optional[str] = None) -> PromptRead:
-        """Deprecated: Use set_prompt_state instead."""
-        return await self.set_prompt_state(db, prompt_id, activate, user_email)
+    # # Backward compatibility alias
+    # async def toggle_prompt_status(self, db: Session, prompt_id: int, activate: bool, user_email: Optional[str] = None) -> PromptRead:
+    #     """Deprecated: Use set_prompt_state instead."""
+    #     return await self.set_prompt_state(db, prompt_id, activate, user_email)
 
     async def get_prompt_details(self, db: Session, prompt_id: Union[int, str], include_inactive: bool = False) -> Dict[str, Any]:  # pylint: disable=unused-argument
         """

@@ -2227,10 +2227,10 @@ class ResourceService:
             )
             raise ResourceError(f"Failed to toggle resource status: {str(e)}")
 
-    # Backward compatibility alias
-    async def toggle_resource_status(self, db: Session, resource_id: int, activate: bool, user_email: Optional[str] = None) -> ResourceRead:
-        """Deprecated: Use set_resource_state instead."""
-        return await self.set_resource_state(db, resource_id, activate, user_email)
+    # # Backward compatibility alias
+    # async def toggle_resource_status(self, db: Session, resource_id: int, activate: bool, user_email: Optional[str] = None) -> ResourceRead:
+    #     """Deprecated: Use set_resource_state instead."""
+    #     return await self.set_resource_state(db, resource_id, activate, user_email)
 
     async def subscribe_resource(self, db: Session, subscription: ResourceSubscription) -> None:
         """

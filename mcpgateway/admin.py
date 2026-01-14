@@ -2264,8 +2264,8 @@ async def admin_set_server_state(
         >>> form_data_activate = FormData([("activate", "true"), ("is_inactive_checked", "false")])
         >>> mock_request_activate = MagicMock(spec=Request, scope={"root_path": ""})
         >>> mock_request_activate.form = AsyncMock(return_value=form_data_activate)
-        >>> original_toggle_server_status = server_service.toggle_server_status
-        >>> server_service.toggle_server_status = AsyncMock()
+        >>> original_set_server_state= server_service.set_server_state
+        >>> server_service.set_server_state = AsyncMock()
         >>>
         >>> async def test_admin_set_server_state_activate():
         ...     result = await admin_set_server_state(server_id, mock_request_activate, mock_db, mock_user)
@@ -2302,7 +2302,7 @@ async def admin_set_server_state(
         >>> form_data_error = FormData([("activate", "true")])
         >>> mock_request_error = MagicMock(spec=Request, scope={"root_path": ""})
         >>> mock_request_error.form = AsyncMock(return_value=form_data_error)
-        >>> server_service.toggle_server_status = AsyncMock(side_effect=Exception("State change failed"))
+        >>> server_service.set_server_state = AsyncMock(side_effect=Exception("State change failed"))
         >>>
         >>> async def test_admin_set_server_state_exception():
         ...     result = await admin_set_server_state(server_id, mock_request_error, mock_db, mock_user)
@@ -2319,7 +2319,7 @@ async def admin_set_server_state(
         True
         >>>
         >>> # Restore original method
-        >>> server_service.toggle_server_status = original_toggle_server_status
+        >>> server_service.set_server_state = original_set_server_state
     """
     form = await request.form()
     error_message = None
@@ -2328,7 +2328,7 @@ async def admin_set_server_state(
     activate = str(form.get("activate", "true")).lower() == "true"
     is_inactive_checked = str(form.get("is_inactive_checked", "false"))
     try:
-        await server_service.toggle_server_status(db, server_id, activate, user_email=user_email)
+        await server_service.set_server_state(db, server_id, activate, user_email=user_email)
     except PermissionError as e:
         LOGGER.warning(f"Permission denied for user {user_email} setting server {server_id} state: {e}")
         error_message = str(e)
@@ -9341,7 +9341,7 @@ async def admin_set_tool_state(
     activate = str(form.get("activate", "true")).lower() == "true"
     is_inactive_checked = str(form.get("is_inactive_checked", "false"))
     try:
-        await tool_service.toggle_tool_status(db, tool_id, activate, reachable=activate, user_email=user_email)
+        await tool_service.set_tool_state(db, tool_id, activate, reachable=activate, user_email=user_email)
     except PermissionError as e:
         LOGGER.warning(f"Permission denied for user {user_email} toggling tools {tool_id}: {e}")
         error_message = str(e)
@@ -10748,8 +10748,8 @@ async def admin_set_resource_state(
         >>> mock_request.form = AsyncMock(return_value=form_data)
         >>> mock_request.scope = {"root_path": ""}
         >>>
-        >>> original_toggle_resource_status = resource_service.toggle_resource_status
-        >>> resource_service.toggle_resource_status = AsyncMock()
+        >>> original_set_resource_state= resource_service.set_resource_state
+        >>> resource_service.set_resource_state = AsyncMock()
         >>>
         >>> async def test_admin_set_resource_state():
         ...     response = await admin_set_resource_state(1, mock_request, mock_db, mock_user)
@@ -10787,7 +10787,7 @@ async def admin_set_resource_state(
         True
         >>>
         >>> # Test exception handling
-        >>> resource_service.toggle_resource_status = AsyncMock(side_effect=Exception("Test error"))
+        >>> resource_service.set_resource_state = AsyncMock(side_effect=Exception("Test error"))
         >>> form_data_error = FormData([
         ...     ("activate", "true"),
         ...     ("is_inactive_checked", "false")
@@ -10800,7 +10800,7 @@ async def admin_set_resource_state(
         >>>
         >>> asyncio.run(test_admin_set_resource_state_exception())
         True
-        >>> resource_service.toggle_resource_status = original_toggle_resource_status
+        >>> resource_service.set_resource_state = original_set_resource_state
     """
     user_email = get_user_email(user)
     LOGGER.debug(f"User {user_email} is toggling resource ID {resource_id}")
@@ -10809,7 +10809,7 @@ async def admin_set_resource_state(
     activate = str(form.get("activate", "true")).lower() == "true"
     is_inactive_checked = str(form.get("is_inactive_checked", "false"))
     try:
-        await resource_service.toggle_resource_status(db, resource_id, activate, user_email=user_email)
+        await resource_service.set_resource_state(db, resource_id, activate, user_email=user_email)
     except PermissionError as e:
         LOGGER.warning(f"Permission denied for user {user_email} toggling resource status {resource_id}: {e}")
         error_message = str(e)
@@ -11309,8 +11309,8 @@ async def admin_set_prompt_state(
         >>> mock_request.form = AsyncMock(return_value=form_data)
         >>> mock_request.scope = {"root_path": ""}
         >>>
-        >>> original_toggle_prompt_status = prompt_service.toggle_prompt_status
-        >>> prompt_service.toggle_prompt_status = AsyncMock()
+        >>> original_set_prompt_state = prompt_service.set_prompt_state
+        >>> prompt_service.set_prompt_state = AsyncMock()
         >>>
         >>> async def test_admin_set_prompt_state():
         ...     response = await admin_set_prompt_state(1, mock_request, mock_db, mock_user)
@@ -11348,7 +11348,7 @@ async def admin_set_prompt_state(
         True
         >>>
         >>> # Test exception handling
-        >>> prompt_service.toggle_prompt_status = AsyncMock(side_effect=Exception("Test error"))
+        >>> prompt_service.set_prompt_state = AsyncMock(side_effect=Exception("Test error"))
         >>> form_data_error = FormData([
         ...     ("activate", "true"),
         ...     ("is_inactive_checked", "false")
@@ -11361,7 +11361,7 @@ async def admin_set_prompt_state(
         >>>
         >>> asyncio.run(test_admin_set_prompt_state_exception())
         True
-        >>> prompt_service.toggle_prompt_status = original_toggle_prompt_status
+        >>> prompt_service.set_prompt_state = original_set_prompt_state
     """
     user_email = get_user_email(user)
     LOGGER.debug(f"User {user_email} is toggling prompt ID {prompt_id}")
@@ -11370,7 +11370,7 @@ async def admin_set_prompt_state(
     activate: bool = str(form.get("activate", "true")).lower() == "true"
     is_inactive_checked: str = str(form.get("is_inactive_checked", "false"))
     try:
-        await prompt_service.toggle_prompt_status(db, prompt_id, activate, user_email=user_email)
+        await prompt_service.set_prompt_state(db, prompt_id, activate, user_email=user_email)
     except PermissionError as e:
         LOGGER.warning(f"Permission denied for user {user_email} toggling prompt {prompt_id}: {e}")
         error_message = str(e)
@@ -14001,7 +14001,7 @@ async def admin_set_a2a_agent_state(
 
         user_email = get_user_email(user)
 
-        await a2a_service.toggle_agent_status(db, agent_id, activate, user_email=user_email)
+        await a2a_service.set_agent_state(db, agent_id, activate, user_email=user_email)
         root_path = request.scope.get("root_path", "")
         return RedirectResponse(f"{root_path}/admin#a2a-agents", status_code=303)
 

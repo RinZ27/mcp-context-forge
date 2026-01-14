@@ -2318,10 +2318,10 @@ class ToolService:
             )
             raise ToolError(f"Failed to toggle tool status: {str(e)}")
 
-    # Backward compatibility alias
-    async def toggle_tool_status(self, db: Session, tool_id: str, activate: bool, reachable: bool, user_email: Optional[str] = None, skip_cache_invalidation: bool = False) -> ToolRead:
-        """Deprecated: Use set_tool_state instead."""
-        return await self.set_tool_state(db, tool_id, activate, reachable, user_email, skip_cache_invalidation)
+    # # Backward compatibility alias
+    # async def toggle_tool_status(self, db: Session, tool_id: str, activate: bool, reachable: bool, user_email: Optional[str] = None, skip_cache_invalidation: bool = False) -> ToolRead:
+    #     """Deprecated: Use set_tool_state instead."""
+    #     return await self.set_tool_state(db, tool_id, activate, reachable, user_email, skip_cache_invalidation)
 
     async def invoke_tool(
         self,
