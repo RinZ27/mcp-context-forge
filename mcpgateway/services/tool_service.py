@@ -2318,8 +2318,6 @@ class ToolService:
             )
             raise ToolError(f"Failed to toggle tool status: {str(e)}")
 
-    
-
     async def invoke_tool(
         self,
         db: Session,

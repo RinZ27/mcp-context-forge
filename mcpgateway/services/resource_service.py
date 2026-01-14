@@ -2227,8 +2227,6 @@ class ResourceService:
             )
             raise ResourceError(f"Failed to toggle resource status: {str(e)}")
 
-    
-
     async def subscribe_resource(self, db: Session, subscription: ResourceSubscription) -> None:
         """
         Subscribe to a resource.

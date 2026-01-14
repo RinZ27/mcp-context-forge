@@ -313,8 +313,6 @@ class GrpcService:
 
         return GrpcServiceRead.model_validate(service)
 
-    
-
     async def delete_service(
         self,
         db: Session,

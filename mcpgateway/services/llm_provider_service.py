@@ -354,8 +354,6 @@ class LLMProviderService:
         logger.info(f"Set LLM provider state: {provider.name} enabled={provider.enabled}")
         return provider
 
-    
-
     # ---------------------------------------------------------------------------
     # Model CRUD Operations
     # ---------------------------------------------------------------------------
@@ -565,8 +563,6 @@ class LLMProviderService:
         db.refresh(model)
         logger.info(f"Set LLM model state: {model.model_id} enabled={model.enabled}")
         return model
-
-    
 
     # ---------------------------------------------------------------------------
     # Gateway Models (for LLM Chat dropdown)

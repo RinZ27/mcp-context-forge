@@ -2407,8 +2407,6 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
             )
             raise GatewayError(f"Failed to toggle gateway status: {str(e)}")
 
-    
-
     async def _notify_gateway_updated(self, gateway: DbGateway) -> None:
         """
         Notify subscribers of gateway update.

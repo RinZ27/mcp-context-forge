@@ -995,8 +995,6 @@ class A2AAgentService:
 
         return self.convert_agent_to_read(agent, db=db)
 
-    
-
     async def delete_agent(self, db: Session, agent_id: str, user_email: Optional[str] = None, purge_metrics: bool = False) -> None:
         """Delete an A2A agent.
 
