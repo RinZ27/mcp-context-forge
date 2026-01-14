@@ -1095,7 +1095,7 @@ class TestToolService:
         tool_service.convert_tool_to_read = Mock(return_value=tool_read)
 
         # Deactivate the tool (it's active by default)
-        result = await tool_service.toggle_tool_status(test_db, 1, activate=False, reachable=True)
+        result = await tool_service.set_tool_state(test_db, 1, activate=False, reachable=True)
 
         # Verify DB operations
         test_db.get.assert_called_once_with(DbTool, 1)
@@ -1121,7 +1121,7 @@ class TestToolService:
         test_db.refresh = Mock()
 
         with pytest.raises(ToolError) as exc:
-            await tool_service.toggle_tool_status(test_db, "1", activate=False, reachable=True)
+            await tool_service.set_tool_state(test_db, "1", activate=False, reachable=True)
 
         assert "Tool not found: 1" in str(exc.value)
 
@@ -1139,7 +1139,7 @@ class TestToolService:
 
         tool_service._notify_tool_activated = AsyncMock()
 
-        result = await tool_service.toggle_tool_status(test_db, "1", activate=True, reachable=True)
+        result = await tool_service.set_tool_state(test_db, "1", activate=True, reachable=True)
 
         # Verify DB operations
         test_db.get.assert_called_once_with(DbTool, "1")
@@ -1251,7 +1251,7 @@ class TestToolService:
         tool_service.convert_tool_to_read = Mock(return_value=tool_read)
 
         # Deactivate the tool (it's active by default)
-        result = await tool_service.toggle_tool_status(test_db, 1, activate=True, reachable=True)
+        result = await tool_service.set_tool_state(test_db, 1, activate=True, reachable=True)
 
         # Verify DB operations
         test_db.get.assert_called_once_with(DbTool, 1)

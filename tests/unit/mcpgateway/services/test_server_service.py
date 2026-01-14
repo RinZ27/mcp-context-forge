@@ -849,7 +849,7 @@ class TestServerService:
             )
         )
 
-        result = await server_service.toggle_server_status(test_db, 1, activate=False)
+        result = await server_service.set_server_state(test_db, 1, activate=False)
 
         # get_for_update may use `db.get(..., options=...)` or execute a select;
         # accept either approach.

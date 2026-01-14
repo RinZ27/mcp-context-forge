@@ -272,7 +272,7 @@ class TestA2AAgentService:
         service.convert_agent_to_read = MagicMock(return_value=MagicMock())
 
         # Execute
-        await service.toggle_agent_status(mock_db, sample_db_agent.id, False)
+        await service.set_agent_state(mock_db, sample_db_agent.id, False)
 
         # Verify
         assert sample_db_agent.enabled is False

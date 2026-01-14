@@ -100,7 +100,7 @@ class TestToolServiceLocking:
             with patch.object(service, "_notify_tool_deactivated", return_value=None):
                 with patch("mcpgateway.services.tool_service._get_registry_cache"):
                     try:
-                        await service.toggle_tool_status(db, "tool-id", activate=False, reachable=True)
+                        await service.set_tool_state(db, "tool-id", activate=False, reachable=True)
                     except Exception:
                         pass  # Ignore other errors, we're testing locking
 
@@ -199,7 +199,7 @@ class TestServerServiceLocking:
             with patch.object(service, "_notify_server_deactivated", return_value=None):
                 with patch("mcpgateway.services.server_service._get_registry_cache"):
                     try:
-                        await service.toggle_server_status(db, "server-id", activate=False)
+                        await service.set_server_state(db, "server-id", activate=False)
                     except Exception:
                         pass
 
@@ -259,7 +259,7 @@ class TestResourceServiceLocking:
             with patch.object(service, "_notify_resource_deactivated", return_value=None):
                 with patch("mcpgateway.services.resource_service._get_registry_cache"):
                     try:
-                        await service.toggle_resource_status(db, 1, activate=False)
+                        await service.set_resource_state(db, 1, activate=False)
                     except Exception:
                         pass
 
@@ -306,7 +306,7 @@ class TestPromptServiceLocking:
             with patch.object(service, "_notify_prompt_deactivated", return_value=None):
                 with patch("mcpgateway.services.prompt_service._get_registry_cache"):
                     try:
-                        await service.toggle_prompt_status(db, 1, activate=False)
+                        await service.set_prompt_state(db, 1, activate=False)
                     except Exception:
                         pass
 
@@ -369,7 +369,7 @@ class TestGatewayServiceLocking:
             mock_cache.invalidate_gateways = AsyncMock()
             with patch("mcpgateway.services.gateway_service._get_registry_cache", return_value=mock_cache):
                 try:
-                    await service.toggle_gateway_status(db, "gateway-id", activate=False)
+                    await service.set_gateway_state(db, "gateway-id", activate=False)
                 except Exception:
                     pass
 
@@ -482,13 +482,13 @@ class TestConcurrencyScenarios:
                     with patch("mcpgateway.services.tool_service._get_registry_cache"):
                         # First toggle: True -> False
                         try:
-                            await service.toggle_tool_status(db, "tool-id", activate=False, reachable=True)
+                            await service.set_tool_state(db, "tool-id", activate=False, reachable=True)
                         except Exception:
                             pass
 
                         # Second toggle: False -> True (sees updated state)
                         try:
-                            await service.toggle_tool_status(db, "tool-id", activate=True, reachable=True)
+                            await service.set_tool_state(db, "tool-id", activate=True, reachable=True)
                         except Exception:
                             pass
 

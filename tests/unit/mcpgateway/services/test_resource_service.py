@@ -579,7 +579,7 @@ class TestResourceManagement:
                 },
             )
 
-            result = await resource_service.toggle_resource_status(mock_db, 2, activate=True)
+            result = await resource_service.set_resource_state(mock_db, 2, activate=True)
 
             assert mock_inactive_resource.enabled is True
             # commit called twice: once for status change, once in _get_team_name to release transaction
@@ -614,7 +614,7 @@ class TestResourceManagement:
                 },
             )
 
-            result = await resource_service.toggle_resource_status(mock_db, 1, activate=False)
+            result = await resource_service.set_resource_state(mock_db, 1, activate=False)
 
             assert mock_resource.enabled is False
             # commit called twice: once for status change, once in _get_team_name to release transaction
@@ -626,7 +626,7 @@ class TestResourceManagement:
         mock_db.get.return_value = None
 
         with pytest.raises(ResourceError) as exc_info:  # ResourceError, not ResourceNotFoundError
-            await resource_service.toggle_resource_status(mock_db, 999, activate=True)
+            await resource_service.set_resource_state(mock_db, 999, activate=True)
 
         # The actual error message will vary, just check it mentions the resource
         assert "999" in str(exc_info.value)
@@ -662,7 +662,7 @@ class TestResourceManagement:
             )
 
             # Try to activate already active resource
-            result = await resource_service.toggle_resource_status(mock_db, 1, activate=True)
+            result = await resource_service.set_resource_state(mock_db, 1, activate=True)
 
             # No status change commit, but _get_team_name commits to release transaction
             assert mock_db.commit.call_count == 1
@@ -1467,7 +1467,7 @@ class TestErrorHandling:
         mock_db.commit.side_effect = Exception("Database error")
 
         with pytest.raises(ResourceError):
-            await resource_service.toggle_resource_status(mock_db, "39334ce0ed2644d79ede8913a66930c9", activate=False)
+            await resource_service.set_resource_state(mock_db, "39334ce0ed2644d79ede8913a66930c9", activate=False)
 
         mock_db.rollback.assert_called_once()
 
