@@ -313,10 +313,7 @@ class GrpcService:
 
         return GrpcServiceRead.model_validate(service)
 
-    # Backward compatibility alias
-    async def toggle_service(self, db: Session, service_id: str, activate: bool) -> GrpcServiceRead:
-        """Deprecated: Use set_service_state instead."""
-        return await self.set_service_state(db, service_id, activate)
+    
 
     async def delete_service(
         self,

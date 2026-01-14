@@ -354,10 +354,7 @@ class LLMProviderService:
         logger.info(f"Set LLM provider state: {provider.name} enabled={provider.enabled}")
         return provider
 
-    # Backward compatibility alias
-    def toggle_provider(self, db: Session, provider_id: str) -> LLMProvider:
-        """Deprecated: Use set_provider_state() instead."""
-        return self.set_provider_state(db, provider_id)
+    
 
     # ---------------------------------------------------------------------------
     # Model CRUD Operations
@@ -569,10 +566,7 @@ class LLMProviderService:
         logger.info(f"Set LLM model state: {model.model_id} enabled={model.enabled}")
         return model
 
-    # Backward compatibility alias
-    def toggle_model(self, db: Session, model_id: str) -> LLMModel:
-        """Deprecated: Use set_model_state() instead."""
-        return self.set_model_state(db, model_id)
+    
 
     # ---------------------------------------------------------------------------
     # Gateway Models (for LLM Chat dropdown)
