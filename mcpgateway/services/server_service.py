@@ -1351,8 +1351,8 @@ class ServerService:
             )
             raise ServerError(f"Failed to update server: {str(e)}")
 
-    async def toggle_server_status(self, db: Session, server_id: str, activate: bool, user_email: Optional[str] = None) -> ServerRead:
-        """Toggle the activation status of a server.
+    async def set_server_state(self, db: Session, server_id: str, activate: bool, user_email: Optional[str] = None) -> ServerRead:
+        """Set the activation status of a server.
 
         Args:
             db: Database session.
@@ -1385,7 +1385,7 @@ class ServerService:
             >>> service._audit_trail = MagicMock()  # Mock audit trail to prevent database writes
             >>> ServerRead.model_validate = MagicMock(return_value='server_read')
             >>> import asyncio
-            >>> asyncio.run(service.toggle_server_status(db, 'server_id', True))
+            >>> asyncio.run(service.set_server_state(db, 'server_id', True))
             'server_read'
         """
         try:
@@ -1495,6 +1495,11 @@ class ServerService:
                 user_email=user_email,
             )
             raise ServerError(f"Failed to toggle server status: {str(e)}")
+
+    # Backward compatibility alias
+    async def toggle_server_status(self, db: Session, server_id: str, activate: bool, user_email: Optional[str] = None) -> ServerRead:
+        """Deprecated: Use set_server_state instead."""
+        return await self.set_server_state(db, server_id, activate, user_email)
 
     async def delete_server(self, db: Session, server_id: str, user_email: Optional[str] = None, purge_metrics: bool = False) -> None:
         """Permanently delete a server.

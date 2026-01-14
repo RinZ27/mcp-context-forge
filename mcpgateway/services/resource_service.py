@@ -2091,9 +2091,9 @@ class ResourceService:
                     except Exception as e:
                         logger.warning(f"Failed to end observability span for resource reading: {e}")
 
-    async def toggle_resource_status(self, db: Session, resource_id: int, activate: bool, user_email: Optional[str] = None) -> ResourceRead:
+    async def set_resource_state(self, db: Session, resource_id: int, activate: bool, user_email: Optional[str] = None) -> ResourceRead:
         """
-        Toggle the activation status of a resource.
+        Set the activation status of a resource.
 
         Args:
             db: Database session
@@ -2124,7 +2124,7 @@ class ResourceService:
             >>> service.convert_resource_to_read = MagicMock(return_value='resource_read')
             >>> ResourceRead.model_validate = MagicMock(return_value='resource_read')
             >>> import asyncio
-            >>> asyncio.run(service.toggle_resource_status(db, 1, True))
+            >>> asyncio.run(service.set_resource_state(db, 1, True))
             'resource_read'
         """
         try:
@@ -2226,6 +2226,11 @@ class ResourceService:
                 db=db,
             )
             raise ResourceError(f"Failed to toggle resource status: {str(e)}")
+
+    # Backward compatibility alias
+    async def toggle_resource_status(self, db: Session, resource_id: int, activate: bool, user_email: Optional[str] = None) -> ResourceRead:
+        """Deprecated: Use set_resource_state instead."""
+        return await self.set_resource_state(db, resource_id, activate, user_email)
 
     async def subscribe_resource(self, db: Session, subscription: ResourceSubscription) -> None:
         """

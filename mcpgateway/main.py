@@ -2292,19 +2292,19 @@ async def update_server(
         raise HTTPException(status_code=409, detail=ErrorFormatter.format_database_error(e))
 
 
-@server_router.post("/{server_id}/toggle", response_model=ServerRead)
+@server_router.post("/{server_id}/state", response_model=ServerRead)
 @require_permission("servers.update")
-async def toggle_server_status(
+async def set_server_state(
     server_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),
     user=Depends(get_current_user_with_permissions),
 ) -> ServerRead:
     """
-    Toggles the status of a server (activate or deactivate).
+    Sets the status of a server (activate or deactivate).
 
     Args:
-        server_id (str): The ID of the server to toggle.
+        server_id (str): The ID of the server to set state for.
         activate (bool): Whether to activate or deactivate the server.
         db (Session): The database session used to interact with the data store.
         user (str): The authenticated user making the request.
@@ -2317,7 +2317,7 @@ async def toggle_server_status(
     """
     try:
         user_email = user.get("email") if isinstance(user, dict) else str(user)
-        logger.debug(f"User {user} is toggling server with ID {server_id} to {'active' if activate else 'inactive'}")
+        logger.debug(f"User {user} is setting server with ID {server_id} to {'active' if activate else 'inactive'}")
         return await server_service.toggle_server_status(db, server_id, activate, user_email=user_email)
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -2854,9 +2854,9 @@ async def update_a2a_agent(
         raise HTTPException(status_code=409, detail=ErrorFormatter.format_database_error(e))
 
 
-@a2a_router.post("/{agent_id}/toggle", response_model=A2AAgentRead)
+@a2a_router.post("/{agent_id}/state", response_model=A2AAgentRead)
 @require_permission("a2a.update")
-async def toggle_a2a_agent_status(
+async def set_a2a_agent_state(
     agent_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),
@@ -3298,9 +3298,9 @@ async def delete_tool(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@tool_router.post("/{tool_id}/toggle")
+@tool_router.post("/{tool_id}/state")
 @require_permission("tools.update")
-async def toggle_tool_status(
+async def set_tool_state(
     tool_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),
@@ -3364,9 +3364,9 @@ async def list_resource_templates(
     return ListResourceTemplatesResult(_meta={}, resource_templates=resource_templates, next_cursor=None)  # No pagination for now
 
 
-@resource_router.post("/{resource_id}/toggle")
+@resource_router.post("/{resource_id}/state")
 @require_permission("resources.update")
-async def toggle_resource_status(
+async def set_resource_state(
     resource_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),
@@ -3755,9 +3755,9 @@ async def subscribe_resource(user=Depends(get_current_user_with_permissions)) ->
 ###############
 # Prompt APIs #
 ###############
-@prompt_router.post("/{prompt_id}/toggle")
+@prompt_router.post("/{prompt_id}/state")
 @require_permission("prompts.update")
-async def toggle_prompt_status(
+async def set_prompt_state(
     prompt_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),
@@ -4179,9 +4179,9 @@ async def delete_prompt(
 ################
 # Gateway APIs #
 ################
-@gateway_router.post("/{gateway_id}/toggle")
+@gateway_router.post("/{gateway_id}/state")
 @require_permission("gateways.update")
-async def toggle_gateway_status(
+async def set_gateway_state(
     gateway_id: str,
     activate: bool = True,
     db: Session = Depends(get_db),

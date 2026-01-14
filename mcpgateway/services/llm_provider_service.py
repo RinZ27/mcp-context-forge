@@ -337,12 +337,12 @@ class LLMProviderService:
         logger.info(f"Deleted LLM provider: {provider_name} (ID: {provider_id})")
         return True
 
-    def toggle_provider(self, db: Session, provider_id: str) -> LLMProvider:
-        """Toggle provider enabled status.
+    def set_provider_state(self, db: Session, provider_id: str) -> LLMProvider:
+        """Set provider enabled state (toggles current state).
 
         Args:
             db: Database session.
-            provider_id: Provider ID to toggle.
+            provider_id: Provider ID to update.
 
         Returns:
             Updated LLMProvider instance.
@@ -351,8 +351,13 @@ class LLMProviderService:
         provider.enabled = not provider.enabled
         db.commit()
         db.refresh(provider)
-        logger.info(f"Toggled LLM provider: {provider.name} enabled={provider.enabled}")
+        logger.info(f"Set LLM provider state: {provider.name} enabled={provider.enabled}")
         return provider
+
+    # Backward compatibility alias
+    def toggle_provider(self, db: Session, provider_id: str) -> LLMProvider:
+        """Deprecated: Use set_provider_state() instead."""
+        return self.set_provider_state(db, provider_id)
 
     # ---------------------------------------------------------------------------
     # Model CRUD Operations
@@ -547,12 +552,12 @@ class LLMProviderService:
         logger.info(f"Deleted LLM model: {model_name} (ID: {model_id})")
         return True
 
-    def toggle_model(self, db: Session, model_id: str) -> LLMModel:
-        """Toggle model enabled status.
+    def set_model_state(self, db: Session, model_id: str) -> LLMModel:
+        """Set model enabled state (toggles current state).
 
         Args:
             db: Database session.
-            model_id: Model ID to toggle.
+            model_id: Model ID to update.
 
         Returns:
             Updated LLMModel instance.
@@ -561,8 +566,13 @@ class LLMProviderService:
         model.enabled = not model.enabled
         db.commit()
         db.refresh(model)
-        logger.info(f"Toggled LLM model: {model.model_id} enabled={model.enabled}")
+        logger.info(f"Set LLM model state: {model.model_id} enabled={model.enabled}")
         return model
+
+    # Backward compatibility alias
+    def toggle_model(self, db: Session, model_id: str) -> LLMModel:
+        """Deprecated: Use set_model_state() instead."""
+        return self.set_model_state(db, model_id)
 
     # ---------------------------------------------------------------------------
     # Gateway Models (for LLM Chat dropdown)

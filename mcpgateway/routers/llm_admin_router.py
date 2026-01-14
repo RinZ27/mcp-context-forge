@@ -214,18 +214,18 @@ async def get_models_partial(
 # ---------------------------------------------------------------------------
 
 
-@llm_admin_router.post("/providers/{provider_id}/toggle", response_class=HTMLResponse)
+@llm_admin_router.post("/providers/{provider_id}/state", response_class=HTMLResponse)
 @require_permission("admin.system_config")
-async def toggle_provider_html(
+async def set_provider_state_html(
     request: Request,
     provider_id: str,
     current_user_ctx: dict = Depends(get_current_user_with_permissions),
 ) -> HTMLResponse:
-    """Toggle provider enabled status and return updated row.
+    """Set provider enabled state and return updated row.
 
     Args:
         request: FastAPI request object.
-        provider_id: Provider ID to toggle.
+        provider_id: Provider ID to update.
         current_user_ctx: Authenticated user context.
 
     Returns:
@@ -326,18 +326,18 @@ async def delete_provider_html(
 # ---------------------------------------------------------------------------
 
 
-@llm_admin_router.post("/models/{model_id}/toggle", response_class=HTMLResponse)
+@llm_admin_router.post("/models/{model_id}/state", response_class=HTMLResponse)
 @require_permission("admin.system_config")
-async def toggle_model_html(
+async def set_model_state_html(
     request: Request,
     model_id: str,
     current_user_ctx: dict = Depends(get_current_user_with_permissions),
 ) -> HTMLResponse:
-    """Toggle model enabled status and return updated row.
+    """Set model enabled state and return updated row.
 
     Args:
         request: FastAPI request object.
-        model_id: Model ID to toggle.
+        model_id: Model ID to update.
         current_user_ctx: Authenticated user context.
 
     Returns:

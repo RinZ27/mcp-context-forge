@@ -278,13 +278,13 @@ class GrpcService:
 
         return GrpcServiceRead.model_validate(service)
 
-    async def toggle_service(
+    async def set_service_state(
         self,
         db: Session,
         service_id: str,
         activate: bool,
     ) -> GrpcServiceRead:
-        """Toggle a gRPC service's enabled status.
+        """Set a gRPC service's enabled status.
 
         Args:
             db: Database session
@@ -312,6 +312,11 @@ class GrpcService:
         logger.info(f"gRPC service {service.name} {action}")
 
         return GrpcServiceRead.model_validate(service)
+
+    # Backward compatibility alias
+    async def toggle_service(self, db: Session, service_id: str, activate: bool) -> GrpcServiceRead:
+        """Deprecated: Use set_service_state instead."""
+        return await self.set_service_state(db, service_id, activate)
 
     async def delete_service(
         self,

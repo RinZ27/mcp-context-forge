@@ -932,8 +932,8 @@ class A2AAgentService:
             db.rollback()
             raise A2AAgentError(f"Failed to update A2A agent: {str(e)}")
 
-    async def toggle_agent_status(self, db: Session, agent_id: str, activate: bool, reachable: Optional[bool] = None, user_email: Optional[str] = None) -> A2AAgentRead:
-        """Toggle the activation status of an A2A agent.
+    async def set_agent_state(self, db: Session, agent_id: str, activate: bool, reachable: Optional[bool] = None, user_email: Optional[str] = None) -> A2AAgentRead:
+        """Set the activation status of an A2A agent.
 
         Args:
             db: Database session.
@@ -994,6 +994,11 @@ class A2AAgentService:
         )
 
         return self.convert_agent_to_read(agent, db=db)
+
+    # Backward compatibility alias
+    async def toggle_agent_status(self, db: Session, agent_id: str, activate: bool, reachable: Optional[bool] = None, user_email: Optional[str] = None) -> A2AAgentRead:
+        """Deprecated: Use set_agent_state instead."""
+        return await self.set_agent_state(db, agent_id, activate, reachable, user_email)
 
     async def delete_agent(self, db: Session, agent_id: str, user_email: Optional[str] = None, purge_metrics: bool = False) -> None:
         """Delete an A2A agent.

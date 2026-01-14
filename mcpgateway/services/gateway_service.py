@@ -2137,9 +2137,9 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
 
         raise GatewayNotFoundError(f"Gateway not found: {gateway_id}")
 
-    async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
+    async def set_gateway_state(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
         """
-        Toggle the activation status of a gateway.
+        Set the activation status of a gateway.
 
         Args:
             db: Database session
@@ -2406,6 +2406,11 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                 db=db,
             )
             raise GatewayError(f"Failed to toggle gateway status: {str(e)}")
+
+    # Backward compatibility alias
+    async def toggle_gateway_status(self, db: Session, gateway_id: str, activate: bool, reachable: bool = True, only_update_reachable: bool = False, user_email: Optional[str] = None) -> GatewayRead:
+        """Deprecated: Use set_gateway_state instead."""
+        return await self.set_gateway_state(db, gateway_id, activate, reachable, only_update_reachable, user_email)
 
     async def _notify_gateway_updated(self, gateway: DbGateway) -> None:
         """

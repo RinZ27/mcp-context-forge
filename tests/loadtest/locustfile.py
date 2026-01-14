@@ -1252,69 +1252,69 @@ class WriteAPIUser(BaseUser):
         if SERVER_IDS:
             server_id = random.choice(SERVER_IDS)
             with self.client.post(
-                f"/servers/{server_id}/toggle",
+                f"/servers/{server_id}/state",
                 headers=self.auth_headers,
-                name="/servers/[id]/toggle",
+                name="/servers/[id]/state",
                 catch_response=True,
             ) as response:
                 # 403/404 are acceptable - entity may not exist or may be read-only
                 self._validate_json_response(response, allowed_codes=[200, 403, 404])
 
     @task(2)
-    @tag("api", "write", "toggle")
+    @tag("api", "write", "state")
     def toggle_tool_status(self):
         """Toggle a tool's enabled status."""
         if TOOL_IDS:
             tool_id = random.choice(TOOL_IDS)
             with self.client.post(
-                f"/tools/{tool_id}/toggle",
+                f"/tools/{tool_id}/state",
                 headers=self.auth_headers,
-                name="/tools/[id]/toggle",
+                name="/tools/[id]/state",
                 catch_response=True,
             ) as response:
                 # 403/404 are acceptable - entity may not exist or may be read-only
                 self._validate_json_response(response, allowed_codes=[200, 403, 404])
 
     @task(2)
-    @tag("api", "write", "toggle")
+    @tag("api", "write", "state")
     def toggle_resource_status(self):
         """Toggle a resource's enabled status."""
         if RESOURCE_IDS:
             resource_id = random.choice(RESOURCE_IDS)
             with self.client.post(
-                f"/resources/{resource_id}/toggle",
+                f"/resources/{resource_id}/state",
                 headers=self.auth_headers,
-                name="/resources/[id]/toggle",
+                name="/resources/[id]/state",
                 catch_response=True,
             ) as response:
                 # 403/404 are acceptable - entity may not exist or may be read-only
                 self._validate_json_response(response, allowed_codes=[200, 403, 404])
 
     @task(2)
-    @tag("api", "write", "toggle")
+    @tag("api", "write", "state")
     def toggle_prompt_status(self):
         """Toggle a prompt's enabled status."""
         if PROMPT_IDS:
             prompt_id = random.choice(PROMPT_IDS)
             with self.client.post(
-                f"/prompts/{prompt_id}/toggle",
+                f"/prompts/{prompt_id}/state",
                 headers=self.auth_headers,
-                name="/prompts/[id]/toggle",
+                name="/prompts/[id]/state",
                 catch_response=True,
             ) as response:
                 # 403/404 are acceptable - entity may not exist or may be read-only
                 self._validate_json_response(response, allowed_codes=[200, 403, 404])
 
     @task(2)
-    @tag("api", "write", "toggle")
+    @tag("api", "write", "state")
     def toggle_gateway_status(self):
         """Toggle a gateway's enabled status."""
         if GATEWAY_IDS:
             gateway_id = random.choice(GATEWAY_IDS)
             with self.client.post(
-                f"/gateways/{gateway_id}/toggle",
+                f"/gateways/{gateway_id}/state",
                 headers=self.auth_headers,
-                name="/gateways/[id]/toggle",
+                name="/gateways/[id]/state",
                 catch_response=True,
             ) as response:
                 # 403/404/502 are acceptable - gateway may not exist or may be unreachable
