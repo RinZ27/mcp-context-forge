@@ -831,7 +831,7 @@ class TestToolAPIs:
         assert result["headers"] == update_data["headers"]
 
     async def test_toggle_tool_status(self, client: AsyncClient, mock_auth):
-        """Test POST /tools/{tool_id}/toggle."""
+        """Test POST /tools/{tool_id}/state."""
         # Create a tool
         tool_data = {"tool": {"name": "test_toggle_tool"}, "team_id": None, "visibility": "private"}
 
@@ -839,7 +839,7 @@ class TestToolAPIs:
         tool_id = create_response.json()["id"]
 
         # Deactivate the tool
-        response = await client.post(f"/tools/{tool_id}/toggle?activate=false", headers=TEST_AUTH_HEADER)
+        response = await client.post(f"/tools/{tool_id}/state?activate=false", headers=TEST_AUTH_HEADER)
 
         assert response.status_code == 200
         result = response.json()
@@ -1058,7 +1058,7 @@ class TestResourceAPIs:
     async def test_toggle_resource_status(self, client: AsyncClient, mock_auth):
         """Test POST /resources/{resource_id}/state."""
         # Create a resource
-        resource_data = {"resource": {"uri": "test/toggle", "name": "toggle_test", "content": "Test"}, "team_id": None, "visibility": "private"}
+        resource_data = {"resource": {"uri": "test/state", "name": "toggle_test", "content": "Test"}, "team_id": None, "visibility": "private"}
 
         create_response = await client.post("/resources", json=resource_data, headers=TEST_AUTH_HEADER)
         resource_id = create_response.json()["id"]
@@ -1272,7 +1272,7 @@ class TestPromptAPIs:
         assert "messages" in result
 
     async def test_toggle_prompt_status(self, client: AsyncClient, mock_auth):
-        """Test POST /prompts/{prompt_id}/toggle."""
+        """Test POST /prompts/{prompt_id}/state."""
         # Create a prompt
         prompt_data = {"prompt": {"name": "toggle_prompt", "template": "Test prompt", "arguments": []}, "team_id": None, "visibility": "private"}
 
@@ -1280,7 +1280,7 @@ class TestPromptAPIs:
         prompt_id = create_response.json()["id"]
 
         # Toggle prompt status
-        response = await client.post(f"/prompts/{prompt_id}/toggle?activate=false", headers=TEST_AUTH_HEADER)
+        response = await client.post(f"/prompts/{prompt_id}/state?activate=false", headers=TEST_AUTH_HEADER)
 
         assert response.status_code == 200
         assert response.json()["status"] == "success"
