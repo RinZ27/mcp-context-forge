@@ -2338,7 +2338,7 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                 # Structured logging: Audit trail for gateway status toggle
                 audit_trail.log_action(
                     user_id=user_email or "system",
-                    action="toggle_gateway_status",
+                    action="set_gateway_state",
                     resource_type="gateway",
                     resource_id=str(gateway.id),
                     resource_name=gateway.name,
@@ -2968,7 +2968,7 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
         if count >= GW_FAILURE_THRESHOLD:
             logger.error(f"Gateway {gateway.name} failed {GW_FAILURE_THRESHOLD} times. Deactivating...")
             with cast(Any, SessionLocal)() as db:
-                await self.toggle_gateway_status(db, gateway.id, activate=True, reachable=False, only_update_reachable=True)
+                await self.set_gateway_state(db, gateway.id, activate=True, reachable=False, only_update_reachable=True)
                 self._gateway_failure_counts[gateway.id] = 0  # Reset after deactivation
 
     async def check_health_of_gateways(self, gateways: List[DbGateway], user_email: Optional[str] = None) -> bool:
@@ -3290,7 +3290,7 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                     if gateway_enabled and not gateway_reachable:
                         logger.info(f"Reactivating gateway: {gateway_name}, as it is healthy now")
                         with cast(Any, SessionLocal)() as status_db:
-                            await self.toggle_gateway_status(status_db, gateway_id, activate=True, reachable=True, only_update_reachable=True)
+                            await self.set_gateway_state(status_db, gateway_id, activate=True, reachable=True, only_update_reachable=True)
 
                     # Update last_seen with fresh session (gateway object is detached)
                     try:

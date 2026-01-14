@@ -14304,7 +14304,7 @@ async def admin_set_grpc_service_state(
 
     try:
         service = await grpc_service_mgr.get_service(db, service_id)
-        result = await grpc_service_mgr.toggle_service(db, service_id, not service.enabled)
+        result = await grpc_service_mgr.set_service_state(db, service_id, not service.enabled)
         return ORJSONResponse(content=jsonable_encoder(result))
     except GrpcServiceNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
