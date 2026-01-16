@@ -184,6 +184,7 @@ class MCPSessionPool:  # pylint: disable=too-many-instance-attributes
             "x-user-id",
             "x-api-key",
             "cookie",
+            "x-mcp-session-id",
         ]
     )
 
