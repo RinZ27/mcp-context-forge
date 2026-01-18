@@ -2412,6 +2412,7 @@ class ToolService:
         server_id: Optional[str] = None,
         plugin_context_table: Optional[PluginContextTable] = None,
         plugin_global_context: Optional[GlobalContext] = None,
+        meta_data: Optional[Dict[str, Any]] = None,
     ) -> ToolResult:
         """
         Invoke a registered tool and record execution metrics.
@@ -2936,7 +2937,7 @@ class ToolService:
                                     httpx_client_factory=get_httpx_client_factory,
                                     user_identity=app_user_email,
                                 ) as pooled:
-                                    tool_call_result = await pooled.session.call_tool(tool_name_original, arguments)
+                                    tool_call_result = await pooled.session.call_tool(tool_name_original, arguments, meta=meta_data)
                             else:
                                 # Non-pooled path: safe to add per-request headers
                                 if correlation_id and headers:
@@ -2945,7 +2946,7 @@ class ToolService:
                                 async with sse_client(url=server_url, headers=headers, httpx_client_factory=get_httpx_client_factory) as streams:
                                     async with ClientSession(*streams) as session:
                                         await session.initialize()
-                                        tool_call_result = await session.call_tool(tool_name_original, arguments)
+                                        tool_call_result = await session.call_tool(tool_name_original, arguments, meta=meta_data)
 
                             # Log successful MCP call
                             mcp_duration_ms = (time.time() - mcp_start_time) * 1000
@@ -3032,7 +3033,7 @@ class ToolService:
                                     httpx_client_factory=get_httpx_client_factory,
                                     user_identity=app_user_email,
                                 ) as pooled:
-                                    tool_call_result = await pooled.session.call_tool(tool_name_original, arguments)
+                                    tool_call_result = await pooled.session.call_tool(tool_name_original, arguments, meta=meta_data)
                             else:
                                 # Non-pooled path: safe to add per-request headers
                                 if correlation_id and headers:
@@ -3041,7 +3042,7 @@ class ToolService:
                                 async with streamablehttp_client(url=server_url, headers=headers, httpx_client_factory=get_httpx_client_factory) as (read_stream, write_stream, _get_session_id):
                                     async with ClientSession(read_stream, write_stream) as session:
                                         await session.initialize()
-                                        tool_call_result = await session.call_tool(tool_name_original, arguments)
+                                        tool_call_result = await session.call_tool(tool_name_original, arguments, meta=meta_data)
 
                             # Log successful MCP call
                             mcp_duration_ms = (time.time() - mcp_start_time) * 1000
