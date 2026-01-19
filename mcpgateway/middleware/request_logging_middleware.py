@@ -239,7 +239,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 # bandit/DUO warnings about insecure RNGs. Sampling here does
                 # not require crypto strength, but using `secrets` keeps
                 # security scanners happy.
-                import secrets
 
                 r = secrets.randbelow(10 ** 9) / 1e9
                 if r >= self.log_detailed_sample_rate:
