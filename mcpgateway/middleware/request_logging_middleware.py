@@ -143,6 +143,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             max_body_size: Maximum request body size to log in bytes
             log_request_start: Whether to log "request started" events (default: False for performance)
                               When False, only logs on request completion which halves logging overhead.
+            log_resolve_user_identity: If True, allow DB fallback to resolve user identity when no cached user
+            log_detailed_skip_endpoints: Optional list of path prefixes to skip detailed logging
+            log_detailed_sample_rate: Float in [0.0, 1.0] sampling rate for detailed logging
         """
         super().__init__(app)
         self.enable_gateway_logging = enable_gateway_logging
@@ -231,13 +234,19 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Sampling fast path: avoid detailed logging for sampled-out requests
         if should_log_detailed and self.log_detailed_sample_rate < 1.0:
             try:
-                import random
+                # Use the cryptographically secure `secrets` module to avoid
+                # bandit/DUO warnings about insecure RNGs. Sampling here does
+                # not require crypto strength, but using `secrets` keeps
+                # security scanners happy.
+                import secrets
 
-                if random.random() >= self.log_detailed_sample_rate:
+                r = secrets.randbelow(10 ** 9) / 1e9
+                if r >= self.log_detailed_sample_rate:
                     should_log_detailed = False
-            except Exception:
-                # If sampling fails for any reason, default to logging
-                pass
+            except Exception as e:
+                # If sampling fails for any reason, default to logging and
+                # record the incident for diagnostics.
+                logger.debug(f"Sampling failed, defaulting to log: {e}")
 
         # Fast path: if no logging needed at all, skip everything
         if not should_log_boundary and not should_log_detailed:
