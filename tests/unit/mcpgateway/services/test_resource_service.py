@@ -40,7 +40,12 @@ from mcpgateway.services.resource_service import (
 @pytest.fixture(autouse=True)
 def mock_logging_services():
     """Mock audit_trail and structured_logger to prevent database writes during tests."""
-    with patch("mcpgateway.services.resource_service.audit_trail") as mock_audit, patch("mcpgateway.services.resource_service.structured_logger") as mock_logger:
+    # Clear SSL context cache before each test for isolation
+    from mcpgateway.utils.ssl_context_cache import clear_ssl_context_cache
+    clear_ssl_context_cache()
+
+    with patch("mcpgateway.services.resource_service.audit_trail") as mock_audit, \
+         patch("mcpgateway.services.resource_service.structured_logger") as mock_logger:
         mock_audit.log_action = MagicMock(return_value=None)
         mock_logger.log = MagicMock(return_value=None)
         yield {"audit_trail": mock_audit, "structured_logger": mock_logger}
@@ -91,6 +96,8 @@ def mock_resource():
     resource.tags = []  # Ensure tags is a list, not a MagicMock
     resource.team_id = "1234"  # Ensure team_id is a valid string or None
     resource.team = "test-team"  # Ensure team is a valid string or None
+    resource.visibility = "public"  # Ensure visibility is set for access checks
+    resource.owner_email = None
 
     # .content property stub
     content_mock = MagicMock()
@@ -128,6 +135,8 @@ def mock_resource_template():
     resource.tags = []  # Ensure tags is a list, not a MagicMock
     resource.team_id = "1234"  # Ensure team_id is a valid string or None
     resource.team = "test-team"  # Ensure team is a valid string or None
+    resource.visibility = "public"  # Ensure visibility is set for access checks
+    resource.owner_email = None
 
     # .content property stub
     content_mock = MagicMock()
@@ -164,6 +173,8 @@ def mock_inactive_resource():
     resource.metrics = []
     resource.tags = []  # Ensure tags is a list, not a MagicMock
     resource.team = "test-team"  # Ensure team is a valid string or None
+    resource.visibility = "public"  # Ensure visibility is set for access checks
+    resource.owner_email = None
 
     # .content property stub
     content_mock = MagicMock()
@@ -450,10 +461,10 @@ class TestResourceReading:
     """Test resource reading functionality."""
 
     @pytest.mark.asyncio
-    @patch("mcpgateway.services.resource_service.ssl.create_default_context")
-    async def test_read_resource_success(self, mock_ssl, mock_db, mock_resource):
+    @patch("mcpgateway.services.resource_service.get_cached_ssl_context")
+    async def test_read_resource_success(self, mock_ssl_cache, mock_db, mock_resource):
         mock_ctx = MagicMock()
-        mock_ssl.return_value = mock_ctx
+        mock_ssl_cache.return_value = mock_ctx
 
         mock_scalar = MagicMock()
         mock_resource.gateway.ca_certificate = "-----BEGIN CERTIFICATE-----\nABC\n-----END CERTIFICATE-----"
@@ -1792,6 +1803,82 @@ class TestResourceTemplateCaching:
         # Cache should have evicted oldest entries
         cache_info = service._build_regex.cache_info()
         assert cache_info.currsize <= 256, "Cache should respect maxsize limit"
+
+
+class TestResourceAccessAuthorization:
+    """Tests for _check_resource_access authorization logic."""
+
+    @pytest.fixture
+    def resource_service(self):
+        """Create a resource service instance."""
+        return ResourceService()
+
+    @pytest.fixture
+    def mock_db(self):
+        """Create a mock database session."""
+        db = MagicMock()
+        db.commit = MagicMock()
+        return db
+
+    def _create_mock_resource(self, visibility="public", owner_email=None, team_id=None):
+        """Helper to create mock resource."""
+        resource = MagicMock()
+        resource.visibility = visibility
+        resource.owner_email = owner_email
+        resource.team_id = team_id
+        return resource
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_public_always_allowed(self, resource_service, mock_db):
+        """Public resources should be accessible to anyone."""
+        public_resource = self._create_mock_resource(visibility="public")
+
+        # Unauthenticated
+        assert await resource_service._check_resource_access(mock_db, public_resource, user_email=None, token_teams=[]) is True
+        # Authenticated
+        assert await resource_service._check_resource_access(mock_db, public_resource, user_email="user@test.com", token_teams=["team-1"]) is True
+        # Admin
+        assert await resource_service._check_resource_access(mock_db, public_resource, user_email=None, token_teams=None) is True
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_admin_bypass(self, resource_service, mock_db):
+        """Admin (user_email=None, token_teams=None) should have full access."""
+        private_resource = self._create_mock_resource(visibility="private", owner_email="secret@test.com", team_id="secret-team")
+
+        # Admin bypass: both None = unrestricted access
+        assert await resource_service._check_resource_access(mock_db, private_resource, user_email=None, token_teams=None) is True
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_private_denied_to_unauthenticated(self, resource_service, mock_db):
+        """Private resources should be denied to unauthenticated users."""
+        private_resource = self._create_mock_resource(visibility="private", owner_email="owner@test.com")
+
+        # Unauthenticated (public-only token)
+        assert await resource_service._check_resource_access(mock_db, private_resource, user_email=None, token_teams=[]) is False
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_private_allowed_to_owner(self, resource_service, mock_db):
+        """Private resources should be accessible to the owner."""
+        private_resource = self._create_mock_resource(visibility="private", owner_email="owner@test.com")
+
+        # Owner with non-empty token_teams
+        assert await resource_service._check_resource_access(mock_db, private_resource, user_email="owner@test.com", token_teams=["some-team"]) is True
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_team_resource_allowed_to_member(self, resource_service, mock_db):
+        """Team resources should be accessible to team members."""
+        team_resource = self._create_mock_resource(visibility="team", owner_email="owner@test.com", team_id="team-abc")
+
+        # Team member via token_teams
+        assert await resource_service._check_resource_access(mock_db, team_resource, user_email="member@test.com", token_teams=["team-abc"]) is True
+
+    @pytest.mark.asyncio
+    async def test_check_resource_access_team_resource_denied_to_non_member(self, resource_service, mock_db):
+        """Team resources should be denied to non-members."""
+        team_resource = self._create_mock_resource(visibility="team", owner_email="owner@test.com", team_id="team-abc")
+
+        # Non-member
+        assert await resource_service._check_resource_access(mock_db, team_resource, user_email="outsider@test.com", token_teams=["other-team"]) is False
 
 
 if __name__ == "__main__":

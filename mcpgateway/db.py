@@ -1043,7 +1043,7 @@ class EmailUser(Base):
     # Core identity fields
     email: Mapped[str] = mapped_column(String(255), primary_key=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Status fields
@@ -1056,6 +1056,7 @@ class EmailUser(Base):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     password_change_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    password_changed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
@@ -1441,6 +1442,9 @@ class EmailTeam(Base):
     invitations: Mapped[List["EmailTeamInvitation"]] = relationship("EmailTeamInvitation", back_populates="team", cascade="all, delete-orphan")
     api_tokens: Mapped[List["EmailApiToken"]] = relationship("EmailApiToken", back_populates="team", cascade="all, delete-orphan")
     creator: Mapped["EmailUser"] = relationship("EmailUser", foreign_keys=[created_by])
+
+    # Index for search and pagination performance
+    __table_args__ = (Index("ix_email_teams_name_id", "name", "id"),)
 
     def __repr__(self) -> str:
         """String representation of the team.
@@ -4239,6 +4243,11 @@ class Server(Base):
     owner_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     visibility: Mapped[str] = mapped_column(String(20), nullable=False, default="public")
 
+    # OAuth 2.0 configuration for RFC 9728 Protected Resource Metadata
+    # When enabled, MCP clients can authenticate using OAuth with browser-based IDP SSO
+    oauth_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    oauth_config: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+
     # Relationship for loading team names (only active teams)
     # Uses default lazy loading - team name is only loaded when accessed
     # For list/admin views, use explicit joinedload(DbServer.email_team) for single-query loading
@@ -5090,7 +5099,10 @@ class SSOProvider(Base):
     auto_create_users: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     team_mapping: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
-    # Metadata
+    # Provider-specific metadata (e.g., role mappings, claim configurations)
+    provider_metadata: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 

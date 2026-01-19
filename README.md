@@ -1255,9 +1255,14 @@ You can get started by copying the provided [.env.example](https://github.com/IB
 | `JWT_PRIVATE_KEY_PATH`      | If an asymmetric algorithm is used, a private key is required                | (empty)             | path to pem |
 | `JWT_AUDIENCE`              | JWT audience claim for token validation                                      | `mcpgateway-api`    | string      |
 | `JWT_AUDIENCE_VERIFICATION` | Disables jwt audience verification (useful for DCR)                          | `true`              | boolean     |
+| `JWT_ISSUER_VERIFICATION`   | Disables jwt issuer verification (useful for custom auth)                    | `true`              | boolean     |
 | `JWT_ISSUER`                | JWT issuer claim for token validation                                        | `mcpgateway`        | string      |
 | `TOKEN_EXPIRY`              | Expiry of generated JWTs in minutes                                          | `10080`             | int > 0     |
 | `REQUIRE_TOKEN_EXPIRATION`  | Require all JWT tokens to have expiration claims                             | `false`             | bool        |
+| `REQUIRE_JTI`               | Require JTI (JWT ID) claim in all tokens for revocation support              | `false`             | bool        |
+| `REQUIRE_USER_IN_DB`        | Require all authenticated users to exist in the database                     | `false`             | bool        |
+| `EMBED_ENVIRONMENT_IN_TOKENS` | Embed environment claim in gateway-issued JWTs                             | `false`             | bool        |
+| `VALIDATE_TOKEN_ENVIRONMENT` | Reject tokens with mismatched environment claim                             | `false`             | bool        |
 | `AUTH_ENCRYPTION_SECRET`    | Passphrase used to derive AES key for encrypting tool auth headers           | `my-test-salt`      | string      |
 | `OAUTH_REQUEST_TIMEOUT`     | OAuth request timeout in seconds                                             | `30`                | int > 0     |
 | `OAUTH_MAX_RETRIES`         | Maximum retries for OAuth token requests                                     | `3`                 | int > 0     |
@@ -1505,10 +1510,15 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 | Setting                        | Description                                      | Default               | Options |
 | ------------------------------ | ------------------------------------------------ | --------------------- | ------- |
 | `MCP_CLIENT_AUTH_ENABLED`     | Enable JWT authentication for MCP client operations | `true`            | bool    |
+| `MCP_REQUIRE_AUTH`            | Require authentication for /mcp endpoints. If false, unauthenticated requests can access public items only | `false` | bool |
 | `TRUST_PROXY_AUTH`            | Trust proxy authentication headers               | `false`               | bool    |
 | `PROXY_USER_HEADER`           | Header containing authenticated username from proxy | `X-Authenticated-User` | string |
 
 > 🔐 **MCP Client Auth**: When `MCP_CLIENT_AUTH_ENABLED=false`, you must set `TRUST_PROXY_AUTH=true` if using a trusted authentication proxy. This is a security-sensitive setting.
+
+> 🔒 **MCP Require Auth**: When `MCP_REQUIRE_AUTH=true`, all `/mcp` endpoint requests must include a valid Bearer token. When `false` (default), unauthenticated requests are allowed but can only access public tools, resources, and prompts.
+
+> ⚠️ **MCP Access Control Dependencies**: Full MCP access control (visibility + team scoping + membership validation) requires `MCP_CLIENT_AUTH_ENABLED=true` with valid JWT tokens containing team claims. When `MCP_CLIENT_AUTH_ENABLED=false`, access control relies on `MCP_REQUIRE_AUTH` plus tool/resource visibility only—team membership validation is skipped since there's no JWT to extract teams from.
 
 ### SSO (Single Sign-On) Configuration
 
@@ -1618,6 +1628,7 @@ ContextForge implements **OAuth 2.0 Dynamic Client Registration (RFC 7591)** and
 | `OAUTH_DISCOVERY_ENABLED`                  | Enable AS metadata discovery (RFC 8414)                        | `true`                         | bool          |
 | `OAUTH_PREFERRED_CODE_CHALLENGE_METHOD`    | PKCE code challenge method                                     | `S256`                         | `S256`, `plain` |
 | `JWT_AUDIENCE_VERIFICATION`                | JWT audience verification (disable for DCR)                    | `true`                         | bool          |
+| `JWT_ISSUER_VERIFICATION`                  | JWT issuer verification (disable if needed)                    | `true`                         | bool          |
 
 **Documentation:**
 - [DCR Configuration Guide](https://ibm.github.io/mcp-context-forge/manage/dcr/) - Complete DCR setup and troubleshooting

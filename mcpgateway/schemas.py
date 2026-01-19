@@ -2729,7 +2729,7 @@ class GatewayCreate(BaseModel):
 
                 # Warn about duplicate keys (optional - could log this instead)
                 if duplicate_keys:
-                    logging.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
+                    logger.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
 
                 # Check for excessive headers (prevent abuse)
                 if len(header_dict) > 100:
@@ -2971,7 +2971,7 @@ class GatewayUpdate(BaseModelWithConfigDict):
 
                 # Warn about duplicate keys (optional - could log this instead)
                 if duplicate_keys:
-                    logging.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
+                    logger.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
 
                 # Check for excessive headers (prevent abuse)
                 if len(header_dict) > 100:
@@ -3565,6 +3565,10 @@ class ServerCreate(BaseModel):
     owner_email: Optional[str] = Field(None, description="Email of the server owner")
     visibility: Optional[str] = Field(default="public", description="Visibility level (private, team, public)")
 
+    # OAuth 2.0 configuration for RFC 9728 Protected Resource Metadata
+    oauth_enabled: bool = Field(False, description="Enable OAuth 2.0 for MCP client authentication")
+    oauth_config: Optional[Dict[str, Any]] = Field(None, description="OAuth 2.0 configuration (authorization_server, scopes_supported, etc.)")
+
     @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:
@@ -3694,6 +3698,10 @@ class ServerUpdate(BaseModelWithConfigDict):
     team_id: Optional[str] = Field(None, description="Team ID for resource organization")
     owner_email: Optional[str] = Field(None, description="Email of the server owner")
     visibility: Optional[str] = Field(None, description="Visibility level (private, team, public)")
+
+    # OAuth 2.0 configuration for RFC 9728 Protected Resource Metadata
+    oauth_enabled: Optional[bool] = Field(None, description="Enable OAuth 2.0 for MCP client authentication")
+    oauth_config: Optional[Dict[str, Any]] = Field(None, description="OAuth 2.0 configuration (authorization_server, scopes_supported, etc.)")
 
     @field_validator("tags")
     @classmethod
@@ -3866,6 +3874,10 @@ class ServerRead(BaseModelWithConfigDict):
     team: Optional[str] = Field(None, description="Name of the team that owns this resource")
     owner_email: Optional[str] = Field(None, description="Email of the user who owns this resource")
     visibility: Optional[str] = Field(default="public", description="Visibility level: private, team, or public")
+
+    # OAuth 2.0 configuration for RFC 9728 Protected Resource Metadata
+    oauth_enabled: bool = Field(False, description="Whether OAuth 2.0 is enabled for MCP client authentication")
+    oauth_config: Optional[Dict[str, Any]] = Field(None, description="OAuth 2.0 configuration (authorization_server, scopes_supported, etc.)")
 
     @model_validator(mode="before")
     @classmethod
@@ -4270,7 +4282,7 @@ class A2AAgentCreate(BaseModel):
 
                 # Warn about duplicate keys (optional - could log this instead)
                 if duplicate_keys:
-                    logging.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
+                    logger.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
 
                 # Check for excessive headers (prevent abuse)
                 if len(header_dict) > 100:
@@ -4558,7 +4570,7 @@ class A2AAgentUpdate(BaseModelWithConfigDict):
 
                 # Warn about duplicate keys (optional - could log this instead)
                 if duplicate_keys:
-                    logging.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
+                    logger.warning(f"Duplicate header keys detected (last value used): {', '.join(duplicate_keys)}")
 
                 # Check for excessive headers (prevent abuse)
                 if len(header_dict) > 100:
@@ -5312,11 +5324,40 @@ class TeamCreateRequest(BaseModel):
             str: Validated and stripped team name
 
         Raises:
-            ValueError: If team name is empty
+            ValueError: If team name is empty or contains invalid characters
         """
         if not v.strip():
             raise ValueError("Team name cannot be empty")
-        return v.strip()
+        v = v.strip()
+        # Strict validation: only alphanumeric, underscore, period, dash, and spaces
+        if not re.match(settings.validation_name_pattern, v):
+            raise ValueError("Team name can only contain letters, numbers, spaces, underscores, periods, and dashes")
+        SecurityValidator.validate_no_xss(v, "Team name")
+        if re.search(SecurityValidator.DANGEROUS_JS_PATTERN, v, re.IGNORECASE):
+            raise ValueError("Team name contains script patterns that may cause security issues")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate team description for XSS.
+
+        Args:
+            v: Team description to validate
+
+        Returns:
+            Optional[str]: Validated description or None
+
+        Raises:
+            ValueError: If description contains dangerous patterns
+        """
+        if v is not None:
+            v = v.strip()
+            if v:
+                SecurityValidator.validate_no_xss(v, "Team description")
+                if re.search(SecurityValidator.DANGEROUS_JS_PATTERN, v, re.IGNORECASE):
+                    raise ValueError("Team description contains script patterns that may cause security issues")
+        return v if v else None
 
     @field_validator("slug")
     @classmethod
@@ -5378,13 +5419,42 @@ class TeamUpdateRequest(BaseModel):
             Optional[str]: Validated and stripped team name or None
 
         Raises:
-            ValueError: If team name is empty
+            ValueError: If team name is empty or contains invalid characters
         """
         if v is not None:
             if not v.strip():
                 raise ValueError("Team name cannot be empty")
-            return v.strip()
+            v = v.strip()
+            # Strict validation: only alphanumeric, underscore, period, dash, and spaces
+            if not re.match(settings.validation_name_pattern, v):
+                raise ValueError("Team name can only contain letters, numbers, spaces, underscores, periods, and dashes")
+            SecurityValidator.validate_no_xss(v, "Team name")
+            if re.search(SecurityValidator.DANGEROUS_JS_PATTERN, v, re.IGNORECASE):
+                raise ValueError("Team name contains script patterns that may cause security issues")
+            return v
         return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate team description for XSS.
+
+        Args:
+            v: Team description to validate
+
+        Returns:
+            Optional[str]: Validated description or None
+
+        Raises:
+            ValueError: If description contains dangerous patterns
+        """
+        if v is not None:
+            v = v.strip()
+            if v:
+                SecurityValidator.validate_no_xss(v, "Team description")
+                if re.search(SecurityValidator.DANGEROUS_JS_PATTERN, v, re.IGNORECASE):
+                    raise ValueError("Team description contains script patterns that may cause security issues")
+        return v if v else None
 
 
 class TeamResponse(BaseModel):
@@ -5467,6 +5537,42 @@ class TeamMemberResponse(BaseModel):
     joined_at: datetime = Field(..., description="When the member joined")
     invited_by: Optional[str] = Field(None, description="Email of user who invited this member")
     is_active: bool = Field(..., description="Whether the membership is active")
+
+
+class PaginatedTeamMembersResponse(BaseModel):
+    """Schema for paginated team member list response.
+
+    Attributes:
+        members: List of team members
+        next_cursor: Optional cursor for next page of results
+
+    Examples:
+        >>> member1 = TeamMemberResponse(
+        ...     id="member-1",
+        ...     team_id="team-123",
+        ...     user_email="user1@example.com",
+        ...     role="member",
+        ...     joined_at=datetime.now(timezone.utc),
+        ...     is_active=True
+        ... )
+        >>> member2 = TeamMemberResponse(
+        ...     id="member-2",
+        ...     team_id="team-123",
+        ...     user_email="user2@example.com",
+        ...     role="member",
+        ...     joined_at=datetime.now(timezone.utc),
+        ...     is_active=True
+        ... )
+        >>> response = PaginatedTeamMembersResponse(
+        ...     members=[member1, member2],
+        ...     nextCursor="cursor-token-123"
+        ... )
+        >>> len(response.members)
+        2
+    """
+
+    members: List[TeamMemberResponse] = Field(..., description="List of team members")
+    next_cursor: Optional[str] = Field(None, alias="nextCursor", description="Cursor for next page of results")
 
 
 class TeamInviteRequest(BaseModel):
@@ -6548,6 +6654,7 @@ class CatalogServer(BaseModel):
     documentation_url: Optional[str] = Field(None, description="URL to server documentation")
     is_registered: bool = Field(default=False, description="Whether server is already registered")
     is_available: bool = Field(default=True, description="Whether server is currently available")
+    requires_oauth_config: bool = Field(default=False, description="Whether server is registered but needs OAuth configuration")
 
 
 class CatalogServerRegisterRequest(BaseModel):
@@ -6566,6 +6673,7 @@ class CatalogServerRegisterResponse(BaseModel):
     server_id: str = Field(..., description="ID of the registered server in the system")
     message: str = Field(..., description="Status message")
     error: Optional[str] = Field(None, description="Error message if registration failed")
+    oauth_required: bool = Field(False, description="Whether OAuth configuration is required before activation")
 
 
 class CatalogServerStatusRequest(BaseModel):
@@ -6797,6 +6905,13 @@ class CursorPaginatedA2AAgentsResponse(BaseModel):
     """Cursor-paginated response for A2A agents list endpoint."""
 
     agents: List["A2AAgentRead"] = Field(..., description="List of A2A agents for this page")
+    next_cursor: Optional[str] = Field(None, alias="nextCursor", description="Cursor for the next page, null if no more pages")
+
+
+class CursorPaginatedTeamsResponse(BaseModel):
+    """Cursor-paginated response for teams list endpoint."""
+
+    teams: List["TeamResponse"] = Field(..., description="List of teams for this page")
     next_cursor: Optional[str] = Field(None, alias="nextCursor", description="Cursor for the next page, null if no more pages")
 
 
