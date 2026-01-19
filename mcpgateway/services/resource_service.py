@@ -1359,7 +1359,7 @@ class ResourceService:
         """
         return get_cached_ssl_context(ca_certificate)
 
-    async def invoke_resource(self, db: Session, resource_id: str, resource_uri: str, resource_template_uri: Optional[str] = None, user_identity: Optional[Union[str, Dict[str, Any]]] = None) -> Any:
+    async def invoke_resource(self, db: Session, resource_id: str, resource_uri: str, resource_template_uri: Optional[str] = None, user_identity: Optional[Union[str, Dict[str, Any]]] = None, meta_data: Optional[Dict[str, Any]] = None) -> Any:
         """
         Invoke a resource via its configured gateway using SSE or StreamableHTTP transport.
 
@@ -1642,7 +1642,7 @@ class ResourceService:
                         db.commit()  # End read-only transaction cleanly (commit not rollback to avoid inflating rollback stats)
                         db.close()
 
-                        async def connect_to_sse_session(server_url: str, uri: str, authentication: Optional[Dict[str, str]] = None) -> str | None:
+                        async def connect_to_sse_session(server_url: str, uri: str, authentication: Optional[Dict[str, str]] = None, meta_data: Optional[Dict[str, Any]] = None) -> str | None:
                             """
                             Connect to an SSE-based gateway and retrieve the text content of a resource.
 
@@ -1699,7 +1699,7 @@ class ResourceService:
                                         httpx_client_factory=_get_httpx_client_factory,
                                         user_identity=pool_user_identity,
                                     ) as pooled:
-                                        resource_response = await pooled.session.read_resource(uri=uri)
+                                        resource_response = await pooled.session.read_resource(uri=uri, meta=meta_data)
                                         return getattr(getattr(resource_response, "contents")[0], "text")
                                 else:
                                     # Fallback to per-call sessions when pool disabled or not initialized
@@ -1710,13 +1710,13 @@ class ResourceService:
                                     ):
                                         async with ClientSession(read_stream, write_stream) as session:
                                             _ = await session.initialize()
-                                            resource_response = await session.read_resource(uri=uri)
+                                            resource_response = await session.read_resource(uri=uri, meta=meta_data)
                                             return getattr(getattr(resource_response, "contents")[0], "text")
                             except Exception as e:
                                 logger.debug(f"Exception while connecting to sse gateway: {e}")
                                 return None
 
-                        async def connect_to_streamablehttp_server(server_url: str, uri: str, authentication: Optional[Dict[str, str]] = None) -> str | None:
+                        async def connect_to_streamablehttp_server(server_url: str, uri: str, authentication: Optional[Dict[str, str]] = None, meta_data: Optional[Dict[str, Any]] = None) -> str | None:
                             """
                             Connect to a StreamableHTTP gateway and retrieve the text content of a resource.
 
@@ -1772,7 +1772,7 @@ class ResourceService:
                                         httpx_client_factory=_get_httpx_client_factory,
                                         user_identity=pool_user_identity,
                                     ) as pooled:
-                                        resource_response = await pooled.session.read_resource(uri=uri)
+                                        resource_response = await pooled.session.read_resource(uri=uri, meta=meta_data)
                                         return getattr(getattr(resource_response, "contents")[0], "text")
                                 else:
                                     # Fallback to per-call sessions when pool disabled or not initialized
@@ -1783,7 +1783,7 @@ class ResourceService:
                                     ):
                                         async with ClientSession(read_stream, write_stream) as session:
                                             _ = await session.initialize()
-                                            resource_response = await session.read_resource(uri=uri)
+                                            resource_response = await session.read_resource(uri=uri, meta=meta_data)
                                             return getattr(getattr(resource_response, "contents")[0], "text")
                             except Exception as e:
                                 logger.debug(f"Exception while connecting to streamablehttp gateway: {e}")
@@ -1795,9 +1795,9 @@ class ResourceService:
 
                         resource_text = ""
                         if (gateway_transport).lower() == "sse":
-                            resource_text = await connect_to_sse_session(server_url=gateway_url, authentication=headers, uri=uri)
+                            resource_text = await connect_to_sse_session(server_url=gateway_url, authentication=headers, uri=uri, meta_data=meta_data)
                         else:
-                            resource_text = await connect_to_streamablehttp_server(server_url=gateway_url, authentication=headers, uri=uri)
+                            resource_text = await connect_to_streamablehttp_server(server_url=gateway_url, authentication=headers, uri=uri, meta_data=meta_data)
                         success = True  # Mark as successful before returning
                         return resource_text
                     except Exception as e:
@@ -1849,6 +1849,7 @@ class ResourceService:
         token_teams: Optional[List[str]] = None,
         plugin_context_table: Optional[PluginContextTable] = None,
         plugin_global_context: Optional[GlobalContext] = None,
+        meta_data: Optional[Dict[str, Any]] = None,
     ) -> ResourceContent:
         """Read a resource's content with plugin hook support.
 
@@ -2145,7 +2146,7 @@ class ResourceService:
                 # If content is already a Pydantic content model, return as-is
                 if isinstance(content, (ResourceContent, TextContent)):
                     resource_response = await self.invoke_resource(
-                        db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "text") or None, user_identity=user
+                        db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "text") or None, user_identity=user, meta_data=meta_data
                     )
                     if resource_response:
                         setattr(content, "text", resource_response)
@@ -2154,12 +2155,12 @@ class ResourceService:
                 if hasattr(content, "text") or hasattr(content, "blob"):
                     if hasattr(content, "blob"):
                         resource_response = await self.invoke_resource(
-                            db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "blob") or None, user_identity=user
+                            db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "blob") or None, user_identity=user, meta_data=meta_data
                         )
                         setattr(content, "blob", resource_response)
                     elif hasattr(content, "text"):
                         resource_response = await self.invoke_resource(
-                            db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "text") or None, user_identity=user
+                            db=db, resource_id=getattr(content, "id"), resource_uri=getattr(content, "uri") or None, resource_template_uri=getattr(content, "text") or None, user_identity=user, meta_data=meta_data
                         )
                         setattr(content, "text", resource_response)
                     return content
