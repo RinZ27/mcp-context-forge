@@ -468,7 +468,7 @@ class TestAdminServerRoutes:
         assert server_update.oauth_enabled is False
         assert server_update.oauth_config is None
 
-    @patch.object(ServerService, "toggle_server_status")
+    @patch.object(ServerService, "set_server_state")
     async def test_admin_toggle_server_with_exception(self, mock_toggle_status, mock_request, mock_db):
         """Test toggling server status with exception handling."""
         mock_toggle_status.side_effect = Exception("Toggle operation failed")
