@@ -15,7 +15,7 @@ debugging information.
 # Standard
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 
 # Third-Party
 from fastapi.security import HTTPAuthorizationCredentials
@@ -27,6 +27,7 @@ from starlette.responses import Response
 # First-Party
 from mcpgateway.auth import get_current_user
 from mcpgateway.middleware.path_filter import should_skip_request_logging
+from mcpgateway.config import settings
 from mcpgateway.services.logging_service import LoggingService
 from mcpgateway.services.structured_logger import get_structured_logger
 from mcpgateway.utils.correlation_id import get_correlation_id
@@ -126,8 +127,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         enable_gateway_logging: bool = True,
         log_detailed_requests: bool = False,
         log_level: str = "DEBUG",
-        max_body_size: int = 4096,
+        max_body_size: Optional[int] = None,
         log_request_start: bool = False,
+        log_resolve_user_identity: bool = False,
+        log_detailed_skip_endpoints: Optional[List[str]] = None,
+        log_detailed_sample_rate: float = 1.0,
     ):
         """Initialize the request logging middleware.
 
@@ -144,8 +148,13 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         self.enable_gateway_logging = enable_gateway_logging
         self.log_detailed_requests = log_detailed_requests
         self.log_level = log_level.upper()
-        self.max_body_size = max_body_size  # Expected to be in bytes
+        # Use explicit configured value when provided, otherwise fall back to
+        # settings.log_detailed_max_body_size (configured in mcpgateway.config)
+        self.max_body_size = max_body_size if max_body_size is not None else settings.log_detailed_max_body_size
         self.log_request_start = log_request_start
+        self.log_resolve_user_identity = log_resolve_user_identity
+        self.log_detailed_skip_endpoints = log_detailed_skip_endpoints or []
+        self.log_detailed_sample_rate = log_detailed_sample_rate
 
     async def _resolve_user_identity(self, request: Request):
         """Best-effort extraction of user identity for request logs.
@@ -163,6 +172,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             return (str(raw_user_id) if raw_user_id is not None else None, user_email)
 
         # Fallback: try to authenticate using cookies/headers (matches AuthContextMiddleware)
+        # Respect configuration: avoid DB fallback unless explicitly allowed
+        if not self.log_resolve_user_identity:
+            return (None, None)
         token = None
         if request.cookies:
             token = request.cookies.get("jwt_token") or request.cookies.get("access_token") or request.cookies.get("token")
@@ -208,6 +220,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Determine logging needs BEFORE expensive operations
         should_log_boundary = self.enable_gateway_logging and not should_skip_request_logging(path)
         should_log_detailed = self.log_detailed_requests and not should_skip_request_logging(path)
+
+        # Honor middleware-level configured skip endpoints for detailed logging
+        if should_log_detailed and self.log_detailed_skip_endpoints:
+            for prefix in self.log_detailed_skip_endpoints:
+                if path.startswith(prefix):
+                    should_log_detailed = False
+                    break
+
+        # Sampling fast path: avoid detailed logging for sampled-out requests
+        if should_log_detailed and self.log_detailed_sample_rate < 1.0:
+            try:
+                import random
+
+                if random.random() >= self.log_detailed_sample_rate:
+                    should_log_detailed = False
+            except Exception:
+                # If sampling fails for any reason, default to logging
+                pass
 
         # Fast path: if no logging needed at all, skip everything
         if not should_log_boundary and not should_log_detailed:
